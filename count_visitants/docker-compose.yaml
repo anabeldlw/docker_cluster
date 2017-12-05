@@ -1,0 +1,100 @@
+version: "3"
+services:
+  controller:
+    image: anabeldlw/openstack_controller:tag1
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 4GB
+    ports:
+      - "3306:3306"
+      - "35357:35357"
+      - "9292:9292"
+      - "5000:5000"
+      - "5672:5672"
+      - "8774:8774"
+      - "8776:8776"
+      - "6080:6080"
+      - "9696:9696"
+      - "80:80"
+    networks:
+      - my-network:
+        aliases:
+          - compute
+          - network
+
+  compute:
+    image: anabeldlw/openstack-compute:tag1
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2GB
+    ports:
+      - "5900:5900"
+      - "16509:16509"
+    networks:
+      - my-network:
+        aliases:
+          - controller
+
+  network:
+    image: anabeldlw/openstack-network:tag1
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2GB
+    ports:
+      - "5900:5900"
+      - "16509:16509"
+    networks:
+      - my-network:
+        aliases:
+          - controller
+  web:
+    image: anabeldlw/friendlyhello:tag1
+    deploy:
+      replicas: 5
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 50M
+    ports:
+      - "80:80"
+    networks:
+      - webnet
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - webnet
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data:/data
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - webnet
+networks:
+  webnet:
+  my-network:
